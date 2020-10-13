@@ -1,5 +1,6 @@
 package com.covid19.covid.service.serviceImpl;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -8,6 +9,7 @@ import com.covid19.covid.converters.CountryCovidTOConverter;
 import com.covid19.covid.converters.CountryTOConverter;
 import com.covid19.covid.converters.LatestTotalTOConverter;
 import com.covid19.covid.entities.CountryCovid;
+import com.covid19.covid.entities.LatestTotal;
 import com.covid19.covid.repository.CommentsRepo;
 import com.covid19.covid.repository.CountryCovidRepo;
 import com.covid19.covid.repository.CountryRepo;
@@ -59,29 +61,49 @@ public class CountryReadServiceImpl implements CountryReadService {
     @Override
     public List<CountryTO> getAlCountries() {
         return countryRepo.findAll().stream().map(country -> countryTOConverter.fromCountry(country))
+                .sorted(Comparator.comparing(CountryTO::getFavourite, Comparator.reverseOrder()))
                 .collect(Collectors.toList());
     }
 
     @Override
     public CountryCovidTO getCountryCovidByName(String name) {
+        CountryCovidTO countryCovidTO = null;
         CountryCovid countryCovid = countryCovidRepo.getByName(name);
         if (countryCovid == null) {
             countryCovid = countryWriteService.getCountryCovidAndSaveByName(name);
         }
-        return countryCovidTOConverter.formCountryCovid(countryCovid);
+        if(countryCovid == null){
+            LOGGER.info("No country found with name"+ name);
+        }else{
+            countryCovidTO = countryCovidTOConverter.formCountryCovid(countryCovid);
+        }
+        return countryCovidTO;
     }
 
     @Override
     public CountryCovidTO getCountryCovidByCode(String code) {
+        CountryCovidTO countryCovidTO = null;
         CountryCovid countryCovid = countryCovidRepo.getByCode(code);
         if (countryCovid == null) {
             countryCovid = countryWriteService.getCountryCovidAndSaveByCode(code);
         }
-        return countryCovidTOConverter.formCountryCovid(countryCovid);
+        if(countryCovid == null){
+            LOGGER.info("No country found with name"+ code);
+        }else{
+            countryCovidTO = countryCovidTOConverter.formCountryCovid(countryCovid);
+        }
+        return countryCovidTO;
     }
 
     public LatestTotalTO getLatestTotal() {
-        return latestTotalTOConverter.fromLatestTotal(latestTotalRepo.findAll().get(0));
+        List<LatestTotal> listOfLatestTotal = latestTotalRepo.findAll();
+        LatestTotalTO latestTotalTO = null;
+        if(listOfLatestTotal == null || listOfLatestTotal.isEmpty()){
+            LOGGER.info("Country detail not present in the DB");
+        }else{
+            latestTotalTO = latestTotalTOConverter.fromLatestTotal(listOfLatestTotal.get(0));
+        }
+        return latestTotalTO;
     }
 
     @Override
